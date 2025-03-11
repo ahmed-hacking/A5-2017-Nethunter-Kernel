@@ -1,0 +1,39 @@
+name: Build Kernel for A5 2017
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update && sudo apt install -y gcc-arm-linux-gnueabi make bc bison flex libssl-dev cpio
+
+      - name: Set Up Environment
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export KERNEL_DIR=$(pwd)
+
+      - name: Compile Kernel
+        run: |
+          make a5_defconfig
+          make -j$(nproc)
+
+      - name: Upload Compiled Kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-kernel
+          path: arch/arm64/boot/Image.gz-dtb
