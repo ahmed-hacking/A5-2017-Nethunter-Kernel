@@ -1,10 +1,7 @@
-name: Build Kernel for A5 2017
+name: Build NetHunter Kernel for A5 2017
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -14,26 +11,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Kernel Source
-        uses: actions/checkout@v4
+    - name: 🛠️ تجهيز بيئة العمل
+      run: |
+        sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu bc bison flex libssl-dev ccache
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update && sudo apt install -y gcc-arm-linux-gnueabi make bc bison flex libssl-dev cpio
+    - name: 📥 تنزيل الكود المصدري للكيرنل
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
 
-      - name: Set Up Environment
-        run: |
-          export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export KERNEL_DIR=$(pwd)
+    - name: 🏗️ بناء الكيرنل
+      run: |
+        export ARCH=arm64
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        make clean && make mrproper
+        make a5y17lte_defconfig
+        make -j$(nproc)
 
-      - name: Compile Kernel
-        run: |
-          make a5_defconfig
-          make -j$(nproc)
+    - name: 📦 حفظ الكيرنل النهائي
+      run: |
+        mkdir -p output
+        cp arch/arm64/boot/Image.gz-dtb output/
 
-      - name: Upload Compiled Kernel
-        uses: actions/upload-artifact@v4
-        with:
-          name: compiled-kernel
-          path: arch/arm64/boot/Image.gz-dtb
+    - name: 📤 رفع الملف الناتج
+      uses: actions/upload-artifact@v4
+      with:
+        name: A5-2017-Nethunter-Kernel
+        path: output/Image.gz-dtb
